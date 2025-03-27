@@ -1592,6 +1592,198 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             Assert.Equal(HttpStatusCode.Accepted, actualResponse.StatusCode);
         }
 
+        [Fact]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public void CreateCheckStatusResponse_Respects_XForwardedHeaders()
+        {
+            var httpApiHandler = new HttpApiHandler(GetTestExtension(), null);
+            var request = new HttpRequestMessage
+            {
+                RequestUri = new Uri(TestConstants.RequestUri),
+            };
+            request.Headers.Add("X-Forwarded-Host", "forwarded.example.com");
+            request.Headers.Add("X-Forwarded-Proto", "https");
+
+            var httpResponseMessage = httpApiHandler.CreateCheckStatusResponse(
+                request,
+                TestConstants.InstanceId,
+                new DurableClientAttribute
+                {
+                    TaskHub = TestConstants.TaskHub,
+                    ConnectionName = TestConstants.ConnectionName,
+                });
+
+            Assert.Equal(HttpStatusCode.Accepted, httpResponseMessage.StatusCode);
+            var content = httpResponseMessage.Content.ReadAsStringAsync().Result;
+            var status = JsonConvert.DeserializeObject<JObject>(content);
+            Assert.Equal(TestConstants.InstanceId, (string)status["id"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["statusQueryGetUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/raiseEvent/{{eventName}}?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["sendEventPostUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/terminate?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["terminatePostUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["purgeHistoryDeleteUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/restart?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["restartPostUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/suspend?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["suspendPostUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/resume?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["resumePostUri"]);
+        }
+
+        [Fact]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public void CreateCheckStatusResponse_Uses_OriginalHost_When_XForwardedHeaders_NotPresent()
+        {
+            var httpApiHandler = new HttpApiHandler(GetTestExtension(), null);
+            var request = new HttpRequestMessage
+            {
+                RequestUri = new Uri(TestConstants.RequestUri),
+            };
+
+            var httpResponseMessage = httpApiHandler.CreateCheckStatusResponse(
+                request,
+                TestConstants.InstanceId,
+                new DurableClientAttribute
+                {
+                    TaskHub = TestConstants.TaskHub,
+                    ConnectionName = TestConstants.ConnectionName,
+                });
+
+            Assert.Equal(HttpStatusCode.Accepted, httpResponseMessage.StatusCode);
+            var content = httpResponseMessage.Content.ReadAsStringAsync().Result;
+            var status = JsonConvert.DeserializeObject<JObject>(content);
+            Assert.Equal(TestConstants.InstanceId, (string)status["id"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["statusQueryGetUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/raiseEvent/{{eventName}}?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["sendEventPostUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/terminate?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["terminatePostUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["purgeHistoryDeleteUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/restart?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["restartPostUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/suspend?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["suspendPostUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/resume?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["resumePostUri"]);
+        }
+        
+        [Fact]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public void CreateCheckStatusResponse_Respects_UseForwardedHost_EnvironmentVariable()
+        {
+            Environment.SetEnvironmentVariable("DurableFunctions__UseForwardedHost", "true");
+            var httpApiHandler = new HttpApiHandler(GetTestExtension(), null);
+            var request = new HttpRequestMessage
+            {
+                RequestUri = new Uri(TestConstants.RequestUri),
+            };
+            request.Headers.Add("X-Forwarded-Host", "forwarded.example.com");
+            request.Headers.Add("X-Forwarded-Proto", "https");
+
+            var httpResponseMessage = httpApiHandler.CreateCheckStatusResponse(
+                request,
+                TestConstants.InstanceId,
+                new DurableClientAttribute
+                {
+                    TaskHub = TestConstants.TaskHub,
+                    ConnectionName = TestConstants.ConnectionName,
+                });
+
+            Assert.Equal(HttpStatusCode.Accepted, httpResponseMessage.StatusCode);
+            var content = httpResponseMessage.Content.ReadAsStringAsync().Result;
+            var status = JsonConvert.DeserializeObject<JObject>(content);
+            Assert.Equal(TestConstants.InstanceId, (string)status["id"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["statusQueryGetUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/raiseEvent/{{eventName}}?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["sendEventPostUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/terminate?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["terminatePostUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["purgeHistoryDeleteUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/restart?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["restartPostUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/suspend?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["suspendPostUri"]);
+            Assert.Equal(
+                $"https://forwarded.example.com/runtime/webhooks/durabletask/instances/7b59154ae666471993659902ed0ba742/resume?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["resumePostUri"]);
+        }
+
+        [Fact]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public void CreateCheckStatusResponse_Ignores_UseForwardedHost_EnvironmentVariable_When_NotSet()
+        {
+            Environment.SetEnvironmentVariable("DurableFunctions__UseForwardedHost", "false");
+            var httpApiHandler = new HttpApiHandler(GetTestExtension(), null);
+            var request = new HttpRequestMessage
+            {
+                RequestUri = new Uri(TestConstants.RequestUri),
+            };
+            request.Headers.Add("X-Forwarded-Host", "forwarded.example.com");
+            request.Headers.Add("X-Forwarded-Proto", "https");
+
+            var httpResponseMessage = httpApiHandler.CreateCheckStatusResponse(
+                request,
+                TestConstants.InstanceId,
+                new DurableClientAttribute
+                {
+                    TaskHub = TestConstants.TaskHub,
+                    ConnectionName = TestConstants.ConnectionName,
+                });
+
+            Assert.Equal(HttpStatusCode.Accepted, httpResponseMessage.StatusCode);
+            var content = httpResponseMessage.Content.ReadAsStringAsync().Result;
+            var status = JsonConvert.DeserializeObject<JObject>(content);
+            Assert.Equal(TestConstants.InstanceId, (string)status["id"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["statusQueryGetUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/raiseEvent/{{eventName}}?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["sendEventPostUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/terminate?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["terminatePostUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["purgeHistoryDeleteUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/restart?taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["restartPostUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/suspend?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["suspendPostUri"]);
+            Assert.Equal(
+                $"{TestConstants.NotificationUrlBase}/instances/7b59154ae666471993659902ed0ba742/resume?reason={{text}}&taskHub=SampleHubVS&connection=Storage&code=mykey",
+                (string)status["resumePostUri"]);
+        }
+
         private static DurableTaskExtension GetTestExtension()
         {
             var options = new DurableTaskOptions();

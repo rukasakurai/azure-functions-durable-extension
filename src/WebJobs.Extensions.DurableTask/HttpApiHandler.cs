@@ -1172,6 +1172,29 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             Uri notificationUri = this.GetWebhookUri();
             Uri baseUri = request?.RequestUri ?? notificationUri;
 
+            // Check if the environment variable is set
+            bool useForwardedHost = Environment.GetEnvironmentVariable("DurableFunctions__UseForwardedHost")?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+
+            // Use X-Forwarded-Host and X-Forwarded-Proto headers if the environment variable is set
+            if (useForwardedHost && request != null)
+            {
+                if (request.Headers.TryGetValues("X-Forwarded-Host", out var forwardedHost))
+                {
+                    baseUri = new UriBuilder(baseUri)
+                    {
+                        Host = forwardedHost.FirstOrDefault()
+                    }.Uri;
+                }
+
+                if (request.Headers.TryGetValues("X-Forwarded-Proto", out var forwardedProto))
+                {
+                    baseUri = new UriBuilder(baseUri)
+                    {
+                        Scheme = forwardedProto.FirstOrDefault()
+                    }.Uri;
+                }
+            }
+
             // e.g. http://{host}/runtime/webhooks/durabletask?code={systemKey}
             string hostUrl = baseUri.GetLeftPart(UriPartial.Authority);
             string baseUrl = hostUrl + notificationUri.AbsolutePath.TrimEnd('/');
