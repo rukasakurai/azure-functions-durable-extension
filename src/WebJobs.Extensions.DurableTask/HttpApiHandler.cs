@@ -1173,7 +1173,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             Uri baseUri = request?.RequestUri ?? notificationUri;
 
             // Check if the environment variable is set
-            bool useForwardedHost = Environment.GetEnvironmentVariable("DurableFunctions__UseForwardedHost")?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+            bool useForwardedHost = this.config.Options.HttpSettings.UseForwardedHost;
 
             // Use X-Forwarded-Host and X-Forwarded-Proto headers if the environment variable is set
             if (useForwardedHost && request != null)
