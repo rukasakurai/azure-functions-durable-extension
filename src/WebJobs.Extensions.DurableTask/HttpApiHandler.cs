@@ -1172,7 +1172,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             Uri notificationUri = this.GetWebhookUri();
             Uri baseUri = request?.RequestUri ?? notificationUri;
 
-            bool useForwardedHost = this.config.Options.HttpSettings.useForwardedHost;
+            bool useForwardedHost = this.config.Options.HttpSettings.UseForwardedHost;
 
             if (useForwardedHost && request != null)
             {
