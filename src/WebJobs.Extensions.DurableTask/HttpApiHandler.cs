@@ -1204,14 +1204,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             string connection = WebUtility.UrlEncode(connectionName ?? this.config.GetDefaultConnectionName());
 
             string querySuffix = $"{TaskHubParameter}={taskHub}&{ConnectionParameter}={connection}";
-            if (!string.IsNullOrEmpty(notificationUri.Query))
+if (!string.IsNullOrEmpty(notificationUri.Query))
             {
                 // This is expected to include the auto-generated system key for this extension.
-                querySuffix += "&" + noti
-icationUri.Quer
-.TrimStart('?')
-
-   }
+                querySuffix += "&" + notificationUri.Query.TrimStart('?');
+            }
 
             var httpManagementPayload = new HttpManagementPayload
             {
