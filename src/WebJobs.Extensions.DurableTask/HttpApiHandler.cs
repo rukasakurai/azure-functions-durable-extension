@@ -1177,19 +1177,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             if (useForwardedHost && request != null)
             {
                 if (request.Headers.TryGetValues("X-Forwarded-Host", out var forwardedHost))
-                {
+                {                    
                     baseUri = new UriBuilder(baseUri)
                     {
-                        Host = forwardedHost.FirstOrDefault()
-                    }.Uri;
+                        Host = forwardedHost.FirstOrDefault(),
+                    }.Uri;                
                 }
+
                 if (request.Headers.TryGetValues("X-Forwarded-Proto", out var forwardedProto))
                 {
                     baseUri = new UriBuilder(baseUri)
                     {
-                        Scheme = forwardedProto.FirstOrDefault()
+                        Scheme = forwardedProto.FirstOrDefault(),
                     }.Uri;
                 }
+                
             }
 
             // e.g. http://{host}/runtime/webhooks/durabletask?code={systemKey}
@@ -1205,8 +1207,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             if (!string.IsNullOrEmpty(notificationUri.Query))
             {
                 // This is expected to include the auto-generated system key for this extension.
-                querySuffix += "&" + notificationUri.Query.TrimStart('?');
-            }
+                querySuffix += "&" + noti
+icationUri.Quer
+.TrimStart('?')
+
+   }
 
             var httpManagementPayload = new HttpManagementPayload
             {
