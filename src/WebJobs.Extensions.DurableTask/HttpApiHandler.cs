@@ -1172,8 +1172,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             Uri notificationUri = this.GetWebhookUri();
             Uri baseUri = request?.RequestUri ?? notificationUri;
 
-            // Check if the environment variable is set
-            bool useForwardedHost = this.config.Options.HttpSettings.UseForwardedHost;
+            bool useForwardedHost = this.config.Options.HttpSettings.useForwardedHost;
 
             // Use X-Forwarded-Host and X-Forwarded-Proto headers if the environment variable is set
             if (useForwardedHost && request != null)
@@ -1185,7 +1184,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                         Host = forwardedHost.FirstOrDefault()
                     }.Uri;
                 }
-
                 if (request.Headers.TryGetValues("X-Forwarded-Proto", out var forwardedProto))
                 {
                     baseUri = new UriBuilder(baseUri)
