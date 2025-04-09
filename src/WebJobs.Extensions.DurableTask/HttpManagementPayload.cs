@@ -92,15 +92,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         public string ResumePostUri { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the forwarded host header value.
-        /// </summary>
-        /// <value>
-        /// The forwarded host header value.
-        /// </value>
-        [JsonProperty("forwardedHost")]
-        public string ForwardedHost { get; internal set; }
-
-        /// <summary>
         /// Gets or sets the forwarded proto header value.
         /// </summary>
         /// <value>

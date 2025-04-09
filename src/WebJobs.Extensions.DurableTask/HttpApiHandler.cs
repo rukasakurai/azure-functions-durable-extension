@@ -1174,7 +1174,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
             bool useForwardedHost = this.config.Options.HttpSettings.useForwardedHost;
 
-            // Use X-Forwarded-Host and X-Forwarded-Proto headers if the environment variable is set
             if (useForwardedHost && request != null)
             {
                 if (request.Headers.TryGetValues("X-Forwarded-Host", out var forwardedHost))
