@@ -1592,6 +1592,98 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             Assert.Equal(HttpStatusCode.Accepted, actualResponse.StatusCode);
         }
 
+        [Theory]
+        [InlineData("example.com", null, "example.com", null)]
+        [InlineData("example.com", "https", "example.com", "https")]
+        [InlineData("custom.domain.com", null, "custom.domain.com", null)]
+        [InlineData("custom.domain.com", "https", "custom.domain.com", "https")]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public void GetClientResponseLinks_Uses_Forwarded_Headers_When_Enabled(
+            string forwardedHost,
+            string forwardedProto,
+            string expectedHost,
+            string expectedScheme)
+        {
+            // Arrange
+            var options = new DurableTaskOptions
+            {
+                HttpSettings = new HttpOptions { UseForwardedHost = true }
+            };
+
+            var httpApiHandler = new HttpApiHandler(GetTestExtension(options), null);
+            var request = new HttpRequestMessage
+            {
+                RequestUri = new Uri(TestConstants.RequestUri),
+            };
+
+            if (forwardedHost != null)
+            {
+                request.Headers.Add("X-Forwarded-Host", forwardedHost);
+            }
+
+            if (forwardedProto != null)
+            {
+                request.Headers.Add("X-Forwarded-Proto", forwardedProto);
+            }
+
+            // Act
+            HttpManagementPayload payload = httpApiHandler.CreateHttpManagementPayload(
+                TestConstants.InstanceId,
+                TestConstants.TaskHub,
+                TestConstants.ConnectionName,
+                request);
+
+            // Parse the resulting URLs to check host and scheme
+            var statusUri = new Uri(payload.StatusQueryGetUri);
+
+            // Assert
+            if (expectedHost != null)
+            {
+                Assert.Equal(expectedHost, statusUri.Host);
+            }
+            
+            if (expectedScheme != null)
+            {
+                Assert.Equal(expectedScheme, statusUri.Scheme);
+            }
+        }
+
+        [Fact]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public void GetClientResponseLinks_Ignores_Forwarded_Headers_When_Disabled()
+        {
+            // Arrange
+            var options = new DurableTaskOptions
+            {
+                HttpSettings = new HttpOptions { UseForwardedHost = false }
+            };
+
+            var httpApiHandler = new HttpApiHandler(GetTestExtension(options), null);
+            var request = new HttpRequestMessage
+            {
+                RequestUri = new Uri(TestConstants.RequestUri),
+            };
+
+            // Add headers that should be ignored
+            request.Headers.Add("X-Forwarded-Host", "ignored.example.com");
+            request.Headers.Add("X-Forwarded-Proto", "https");
+
+            // Act
+            HttpManagementPayload payload = httpApiHandler.CreateHttpManagementPayload(
+                TestConstants.InstanceId,
+                TestConstants.TaskHub,
+                TestConstants.ConnectionName,
+                request);
+
+            // Parse the resulting URL
+            var originalUri = new Uri(TestConstants.RequestUri);
+            var statusUri = new Uri(payload.StatusQueryGetUri);
+
+            // Assert - should maintain original host and scheme
+            Assert.Equal(originalUri.Host, statusUri.Host);
+            Assert.Equal(originalUri.Scheme, statusUri.Scheme);
+        }
+
         private static DurableTaskExtension GetTestExtension()
         {
             var options = new DurableTaskOptions();
