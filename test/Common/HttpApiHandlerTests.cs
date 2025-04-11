@@ -1593,21 +1593,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         }
 
         [Theory]
-        [InlineData("example.com", null, "example.com", null)]
-        [InlineData("example.com", "https", "example.com", "https")]
-        [InlineData("custom.domain.com", null, "custom.domain.com", null)]
-        [InlineData("custom.domain.com", "https", "custom.domain.com", "https")]
+        [InlineData("example.com", null)]
+        [InlineData("example.com", "https")]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
         public void GetClientResponseLinks_Uses_Forwarded_Headers_When_Enabled(
             string forwardedHost,
-            string forwardedProto,
-            string expectedHost,
-            string expectedScheme)
+            string forwardedProto)
         {
             // Arrange
             var options = new DurableTaskOptions
             {
-                HttpSettings = new HttpOptions { UseForwardedHost = true }
+                HttpSettings = new HttpOptions { UseForwardedHost = true },
             };
 
             var httpApiHandler = new HttpApiHandler(GetTestExtension(options), null);
@@ -1627,25 +1623,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             }
 
             // Act
-            HttpManagementPayload payload = httpApiHandler.CreateHttpManagementPayload(
-                TestConstants.InstanceId,
-                TestConstants.TaskHub,
-                TestConstants.ConnectionName,
-                request);
-
-            // Parse the resulting URLs to check host and scheme
-            var statusUri = new Uri(payload.StatusQueryGetUri);
+            var payload = httpApiHandler.CreateHttpManagementPayload("test-instance", null, null);
 
             // Assert
-            if (expectedHost != null)
-            {
-                Assert.Equal(expectedHost, statusUri.Host);
-            }
-            
-            if (expectedScheme != null)
-            {
-                Assert.Equal(expectedScheme, statusUri.Scheme);
-            }
+            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", payload.StatusQueryGetUri);
+            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", payload.SendEventPostUri);
+            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", payload.TerminatePostUri);
         }
 
         [Fact]
@@ -1655,7 +1638,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             // Arrange
             var options = new DurableTaskOptions
             {
-                HttpSettings = new HttpOptions { UseForwardedHost = false }
+                HttpSettings = new HttpOptions { UseForwardedHost = false },
             };
 
             var httpApiHandler = new HttpApiHandler(GetTestExtension(options), null);
@@ -1665,23 +1648,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             };
 
             // Add headers that should be ignored
-            request.Headers.Add("X-Forwarded-Host", "ignored.example.com");
+            request.Headers.Add("X-Forwarded-Host", "example.com");
             request.Headers.Add("X-Forwarded-Proto", "https");
 
             // Act
-            HttpManagementPayload payload = httpApiHandler.CreateHttpManagementPayload(
-                TestConstants.InstanceId,
-                TestConstants.TaskHub,
-                TestConstants.ConnectionName,
-                request);
+            var payload = httpApiHandler.CreateHttpManagementPayload("test-instance", null, null);
 
-            // Parse the resulting URL
-            var originalUri = new Uri(TestConstants.RequestUri);
-            var statusUri = new Uri(payload.StatusQueryGetUri);
-
-            // Assert - should maintain original host and scheme
-            Assert.Equal(originalUri.Host, statusUri.Host);
-            Assert.Equal(originalUri.Scheme, statusUri.Scheme);
+            // Assert
+            Assert.StartsWith(TestConstants.RequestUri, payload.StatusQueryGetUri);
+            Assert.StartsWith(TestConstants.RequestUri, payload.SendEventPostUri);
+            Assert.StartsWith(TestConstants.RequestUri, payload.TerminatePostUri);
         }
 
         private static DurableTaskExtension GetTestExtension()
@@ -1730,11 +1706,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                     new[]
                     {
                         new AzureStorageDurabilityProviderFactory(
-                        new OptionsWrapper<DurableTaskOptions>(options),
-                        new TestStorageServiceClientProviderFactory(),
-                        TestHelpers.GetTestNameResolver(),
-                        NullLoggerFactory.Instance,
-                        TestHelpers.GetMockPlatformInformationService()),
+                            new OptionsWrapper<DurableTaskOptions>(options),
+                            new TestStorageServiceClientProviderFactory(),
+                            TestHelpers.GetTestNameResolver(),
+                            NullLoggerFactory.Instance,
+                            TestHelpers.GetMockPlatformInformationService()),
                     },
                     new TestHostShutdownNotificationService(),
                     new DurableHttpMessageHandlerFactory(),

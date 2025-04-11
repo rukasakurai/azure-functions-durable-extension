@@ -1177,11 +1177,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             if (useForwardedHost && request != null)
             {
                 if (request.Headers.TryGetValues("X-Forwarded-Host", out var forwardedHost))
-                {                    
+                {
                     baseUri = new UriBuilder(baseUri)
                     {
                         Host = forwardedHost.FirstOrDefault(),
-                    }.Uri;                
+                    }.Uri;
                 }
 
                 if (request.Headers.TryGetValues("X-Forwarded-Proto", out var forwardedProto))
@@ -1191,7 +1191,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                         Scheme = forwardedProto.FirstOrDefault(),
                     }.Uri;
                 }
-                
             }
 
             // e.g. http://{host}/runtime/webhooks/durabletask?code={systemKey}
@@ -1204,7 +1203,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             string connection = WebUtility.UrlEncode(connectionName ?? this.config.GetDefaultConnectionName());
 
             string querySuffix = $"{TaskHubParameter}={taskHub}&{ConnectionParameter}={connection}";
-if (!string.IsNullOrEmpty(notificationUri.Query))
+            if (!string.IsNullOrEmpty(notificationUri.Query))
             {
                 // This is expected to include the auto-generated system key for this extension.
                 querySuffix += "&" + notificationUri.Query.TrimStart('?');
