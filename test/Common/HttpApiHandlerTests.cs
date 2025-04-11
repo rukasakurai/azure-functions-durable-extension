@@ -1592,12 +1592,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             Assert.Equal(HttpStatusCode.Accepted, actualResponse.StatusCode);
         }
 
-        [Theory]
-        [InlineData("example.com", "https")]
+        [Fact]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        public void GetClientResponseLinks_Uses_Forwarded_Headers_When_Enabled(
-            string forwardedHost,
-            string forwardedProto)
+        public async void GetClientResponseLinks_Uses_Forwarded_Headers_When_Enabled()
         {
             // Arrange
             var options = new DurableTaskOptions
@@ -1612,28 +1609,33 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 RequestUri = new Uri(TestConstants.RequestUri),
             };
 
-            if (forwardedHost != null)
-            {
-                request.Headers.Add("X-Forwarded-Host", forwardedHost);
-            }
-
-            if (forwardedProto != null)
-            {
-                request.Headers.Add("X-Forwarded-Proto", forwardedProto);
-            }
+            // Add headers that should be used
+            string forwardedHost = "example.com";
+            string forwardedProto = "https";
+            request.Headers.Add("X-Forwarded-Host", forwardedHost);
+            request.Headers.Add("X-Forwarded-Proto", forwardedProto);
 
             // Act
-            var payload = httpApiHandler.CreateHttpManagementPayload(TestConstants.InstanceId, null, null);
+            var httpResponseMessage = httpApiHandler.CreateCheckStatusResponse(
+                request,
+                TestConstants.InstanceId,
+                new DurableClientAttribute
+                {
+                    TaskHub = TestConstants.TaskHub,
+                    ConnectionName = TestConstants.ConnectionName,
+                });
 
             // Assert
-            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", payload.StatusQueryGetUri);
-            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", payload.SendEventPostUri);
-            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", payload.TerminatePostUri);
+            var content = await httpResponseMessage.Content.ReadAsStringAsync();
+            var status = JsonConvert.DeserializeObject<JObject>(content);
+            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", (string)status["statusQueryGetUri"]);
+            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", (string)status["sendEventPostUri"]);
+            Assert.StartsWith($"{forwardedProto}://{forwardedHost}", (string)status["terminatePostUri"]);
         }
 
         [Fact]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        public void GetClientResponseLinks_Ignores_Forwarded_Headers_When_Disabled()
+        public async void GetClientResponseLinks_Ignores_Forwarded_Headers_When_Disabled()
         {
             // Arrange
             var options = new DurableTaskOptions
@@ -1653,12 +1655,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             request.Headers.Add("X-Forwarded-Proto", "https");
 
             // Act
-            var payload = httpApiHandler.CreateHttpManagementPayload(TestConstants.InstanceId, null, null);
+            var httpResponseMessage = httpApiHandler.CreateCheckStatusResponse(
+                request,
+                TestConstants.InstanceId,
+                new DurableClientAttribute
+                {
+                    TaskHub = TestConstants.TaskHub,
+                    ConnectionName = TestConstants.ConnectionName,
+                });
 
             // Assert
-            Assert.StartsWith(TestConstants.RequestUri, payload.StatusQueryGetUri);
-            Assert.StartsWith(TestConstants.RequestUri, payload.SendEventPostUri);
-            Assert.StartsWith(TestConstants.RequestUri, payload.TerminatePostUri);
+            var content = await httpResponseMessage.Content.ReadAsStringAsync();
+            var status = JsonConvert.DeserializeObject<JObject>(content);
+            Assert.StartsWith("http://localhost:7071", (string)status["statusQueryGetUri"]);
+            Assert.StartsWith("http://localhost:7071", (string)status["sendEventPostUri"]);
+            Assert.StartsWith("http://localhost:7071", (string)status["terminatePostUri"]);
         }
 
         private static DurableTaskExtension GetTestExtension()
