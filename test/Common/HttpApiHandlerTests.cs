@@ -1593,7 +1593,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         }
 
         [Theory]
-        [InlineData("example.com", null)]
         [InlineData("example.com", "https")]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
         public void GetClientResponseLinks_Uses_Forwarded_Headers_When_Enabled(

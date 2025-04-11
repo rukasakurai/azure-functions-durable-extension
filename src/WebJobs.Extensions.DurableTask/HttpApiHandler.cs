@@ -1176,18 +1176,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
             if (useForwardedHost && request != null)
             {
-                if (request.Headers.TryGetValues("X-Forwarded-Host", out var forwardedHost))
+                if (request.Headers.TryGetValues("X-Forwarded-Host", out var forwardedHost) &&
+                    request.Headers.TryGetValues("X-Forwarded-Proto", out var forwardedProto))
                 {
                     baseUri = new UriBuilder(baseUri)
                     {
                         Host = forwardedHost.FirstOrDefault(),
-                    }.Uri;
-                }
-
-                if (request.Headers.TryGetValues("X-Forwarded-Proto", out var forwardedProto))
-                {
-                    baseUri = new UriBuilder(baseUri)
-                    {
                         Scheme = forwardedProto.FirstOrDefault(),
                     }.Uri;
                 }
