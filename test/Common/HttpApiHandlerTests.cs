@@ -1604,6 +1604,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             var options = new DurableTaskOptions
             {
                 HttpSettings = new HttpOptions { UseForwardedHost = true },
+                WebhookUriProviderOverride = () => new Uri(TestConstants.NotificationUrl),
             };
 
             var httpApiHandler = new HttpApiHandler(GetTestExtension(options), null);
@@ -1623,7 +1624,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             }
 
             // Act
-            var payload = httpApiHandler.CreateHttpManagementPayload("test-instance", null, null);
+            var payload = httpApiHandler.CreateHttpManagementPayload(TestConstants.InstanceId, null, null);
 
             // Assert
             Assert.StartsWith($"{forwardedProto}://{forwardedHost}", payload.StatusQueryGetUri);
@@ -1639,6 +1640,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             var options = new DurableTaskOptions
             {
                 HttpSettings = new HttpOptions { UseForwardedHost = false },
+                WebhookUriProviderOverride = () => new Uri(TestConstants.NotificationUrl),
             };
 
             var httpApiHandler = new HttpApiHandler(GetTestExtension(options), null);
@@ -1652,7 +1654,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             request.Headers.Add("X-Forwarded-Proto", "https");
 
             // Act
-            var payload = httpApiHandler.CreateHttpManagementPayload("test-instance", null, null);
+            var payload = httpApiHandler.CreateHttpManagementPayload(TestConstants.InstanceId, null, null);
 
             // Assert
             Assert.StartsWith(TestConstants.RequestUri, payload.StatusQueryGetUri);
